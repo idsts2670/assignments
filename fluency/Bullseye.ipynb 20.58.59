@@ -1,0 +1,250 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "name": "google_code_jam_2013_round_1_A.ipynb",
+      "provenance": []
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "vkP390dY381r"
+      },
+      "source": [
+        "# Bullseye_二部探索"
+      ]
+    },
+    {
+      "source": [
+        "Google code jam 2013 round 1 Aの\"bullseye\"\n",
+        "\n",
+        "問題の概要はここにある：https://codingcompetitions.withgoogle.com/codejam/round/0000000000432b32/0000000000432cd1\n",
+        "\n",
+        "\n",
+        "白と黒が同心円状に描かれた「矢の的のようなもの」をbullseyeという．\n",
+        "\n",
+        "ここでは\n",
+        "\n",
+        "- 一番内側は白で，黒い部分の輪の太さが1cmのbullseyeを描きたい．\n",
+        "- それぞれの黒い輪の間の間隔も1cmである．\n",
+        "- 1 mlの黒ペンキで$\\pi \\ \\text{cm}^2$の面積を塗れる．\n",
+        "- 地は白である．\n",
+        "\n",
+        "とする．\n",
+        "\n",
+        "入力と，それに対する正しい出力の例は以下の通りである．\n",
+        "\n",
+        "- 入力が$r = 1, \\ t = 9$ならば，出力は$1$である．\n",
+        "- 入力が$r = 1, \\ t = 10$ならば，出力は$2$である．\n",
+        "- 入力が$r = 3, \\ t = 40$ならば，出力は$3$である．\n",
+        "- 入力が$r = 1, \\ t = 1000000000000000000$ならば，出力は$707106780$である．\n",
+        "- 入力が$r = 10000000000000000, \\ t = 1000000000000000000$ならば，出力は$49$である．\n"
+      ],
+      "cell_type": "markdown",
+      "metadata": {}
+    },
+    {
+      "source": [
+        "## 単純な解法: 2次方程式の解の公式の利用\n",
+        "\n",
+        "まず単純に解いてみる．\n",
+        "\n",
+        "* 高校までの数学の知識を使うと，簡単な計算により，一番内側の黒い輪を完成するためには$2 r + 1$のペンキが必要であるとわかる．\n",
+        "* 同様に内側から$k$本目の黒い輪を完成するためには$2 r + 4 k - 3$のペンキが必要であるとわかる．\n",
+        "\n",
+        "よって$m$本の黒い輪から成るbullseyeを完成するには\n",
+        "$$\n",
+        "\\sum_{k=1}^m (2 r + 4 k - 3) = 2 m^2 + (2 r - 1) m\n",
+        "$$\n",
+        "のペンキが必要であるとわかる．\n",
+        "\n",
+        "よって$2 m^2 + (2 r - 1) m \\le t$を満たす最大の$m$を出力すればよい．\n",
+        "二次方程式の解の公式から\n",
+        "$$\n",
+        "m = \\left\\lfloor \\frac{1 - 2 r + \\sqrt{(2 r - 1)^2 + 8 t}}{4}\\right\\rfloor\n",
+        "$$\n",
+        "を出力すればよい．\n",
+        "\n",
+        "というのが素直な方針である．\n",
+        "\n",
+        "この方針に従い問題を解く関数simple_answerを以下に定義する．"
+      ],
+      "cell_type": "markdown",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {},
+      "outputs": [],
+      "source": [
+        "import math\n",
+        "\n",
+        "def simple_solution(r, t):\n",
+        "    m = (1 - 2 * r + math.sqrt((2 * r - 1) ** 2 + 8 * t)) // 4 # 上の式をそのままPythonで表しただけである．\n",
+        "    return int(m) # 組込み関数intの引数として小数を与えると，整数部分のみが返される．\n",
+        "    "
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {},
+      "outputs": [],
+      "source": [
+        "simple_solution(1, 9)"
+      ]
+    },
+    {
+      "source": [
+        "## 2分探索による解法の工夫\n",
+        "\n",
+        "平方根の計算精度があてにならないので，平方根の計算は使わないことにする．\n",
+        "\n",
+        "例えば「輪の本数$m$を仮定して$2 m^2 + (2 r - 1) m \\le t$を満たすか否かを試す」という方針が考えられる．\n",
+        "\n",
+        "輪の本数$m$は$0, 1, 2, \\dots$と試しても良いが，正解の$m$が大きいときには計算時間がかかるのではないかと心配になる．\n",
+        "\n",
+        "よってここでは$m$に関する2分探索を試すことにする．\n",
+        "\n",
+        "以下に，まず与えられた$m, r, t$が$2 m^2 + (2 r - 1) m \\le t$を満たすか否かを判定する関数is_possibleを定義し，次にそれを用いて解答を2分探索する関数solution_by_binary_searchを定義する．"
+      ],
+      "cell_type": "markdown",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "dQ4FVRFyM6Tl"
+      },
+      "source": [
+        " '''輪の本数mと中心の白い部分の半径rとペンキの量tが与えられたとき，輪をm本塗れるならばTrue，そうでないならばFalseを返す関数'''\n",
+        "def is_possilbe(m, r, t):\n",
+        "  if 2*(m**2)+(2*r-1)*m <= t:\n",
+        "    return True\n",
+        "  else:\n",
+        "    return False"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "NB8yhhnM5Gna"
+      },
+      "source": [
+        "'''2分探索でギリギリのm，すなわち解答を返す関数. 引数のlower_boundにはmの下界，upper_boundにはmの上界を与える．'''\n",
+        "def solution_by_binary_search(lower_bound, upper_bound, r, t):\n",
+        "  # mの上界と下界が離れている間は，mの候補を絞るため以下を繰り返す\n",
+        "  while upper_bound - lower_bound > 1:\n",
+        "    # 上界と下界の中間（の小数部分切り捨て）を計算する\n",
+        "    middle = (upper_bound + lower_bound) // 2\n",
+        "    \n",
+        "    # 中間が「塗れる」本数ならば,ギリギリのmは中間と上界の間にあるはずなので,新たに中間の本数を下界とする\n",
+        "    if is_possible(middle, r, t) == True:\n",
+        "      lower_bound = middle\n",
+        "    # そうでないならば,ギリギリのmは下界と中間の間にあるはずなので，新たに中間の本数を上界とする．\n",
+        "    else:\n",
+        "      upper_bound = middle\n",
+        "  '''\n",
+        "    繰り返しが終わったならば，mの候補は上界か下界のいずれかになっているはず．\n",
+        "  '''\n",
+        "  # 上界が「塗れる」本数ならば上界を解答として返す\n",
+        "  if is_possible(upper_bound, r, t) == True:\n",
+        "    return upper_bound\n",
+        "  # 下界が「塗れる」本数ならば下界を解答として返す\n",
+        "  else:\n",
+        "    return lower_bound"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "rveNQcNx87Bj",
+        "outputId": "05932258-6a41-456b-ff25-dcb48cd40155"
+      },
+      "source": [
+        "# 関数solution_by_binary_searchを実行する際には，自明な下界として0，自明な上界としてtを使う．\n",
+        "solution_by_binary_search(0, 9, 1, 9)"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "1"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 3
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "5JOdKAVB9A4p"
+      },
+      "source": [
+        "この関数solution_by_binary_searchを用いて，入力データから出力を得るコードを以下に記す．\n",
+        "\n",
+        "ここでは，Google code jamのオンラインジャッジを使うことを想定し，標準入出力対応のスクリプトコードにした"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "bH4_nfMt89M_",
+        "outputId": "185ab915-a6c5-4d27-fd7a-5832970f14ed"
+      },
+      "source": [
+        "T = int(input())\n",
+        "for case_number in range(T):\n",
+        "    r, t = map(int, input().split())\n",
+        "    print(f'Case #{case_number + 1}: {solution_by_binary_search(0, t, r, t)}')"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "5\n",
+            "1 9\n",
+            "Case #1: 1\n",
+            "1 9\n",
+            "Case #2: 1\n",
+            "3 40\n",
+            "Case #3: 3\n",
+            "1 1000000000000000000\n",
+            "Case #4: 707106780\n",
+            "10000000000000000 1000000000000000000\n",
+            "Case #5: 49\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    }
+  ]
+}

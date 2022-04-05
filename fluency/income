@@ -1,0 +1,7 @@
+<HTML><HEAD>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<TITLE>Redirecting</TITLE>
+<META HTTP-EQUIV="refresh" content="1; url=https://icpc.iisf.or.jp/past-icpc/domestic2018/judgedata/A/A1">
+</HEAD>
+<BODY onLoad="location.replace('https://icpc.iisf.or.jp/past-icpc/domestic2018/judgedata/A/A1'+document.location.hash)">
+Redirecting you to https://icpc.iisf.or.jp/past-icpc/domestic2018/judgedata/A/A1</BODY></HTML>
